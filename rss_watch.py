@@ -39,7 +39,7 @@ async def addrss(client, message):
     pablo = await edit_or_reply(message, "`Processing....`")
     lenk = get_text(message)
     if not lenk:
-        await pablo.edit("Invalid Command Syntax, Please Check Help Menu To Know More!")
+        await pablo.edit("`Please Give Me A Valid Input. You Can Check Help Menu To Know More!`")
         return
     try:
         rss_d = feedparser.parse(lenk)
@@ -47,7 +47,7 @@ async def addrss(client, message):
     except:
         await pablo.edit("ERROR: The link does not seem to be a RSS feed or is not supported")
         return
-    lol = is_get_chat_rss(message.chat.id, lenk)
+    lol = await is_get_chat_rss(message.chat.id, lenk)
     if lol:
         await pablo.edit("This Link Already Added")
         return
@@ -59,7 +59,7 @@ async def addrss(client, message):
     except:
         pass
     await client.send_message(message.chat.id, content)
-    add_rss(message.chat.id, lenk, rss_d.entries[0].link)
+    await add_rss(message.chat.id, lenk, rss_d.entries[0].link)
     await pablo.edit("Successfully Added Link To RSS Watch")
 
 @friday_on_cmd(
@@ -72,21 +72,18 @@ async def addrss(client, message):
 )
 async def testrss(client, message):
     pablo = await edit_or_reply(message, "`Processing....`")
-    damn = basic_check(message.chat.id)
+    damn = await basic_check(message.chat.id)
     if not damn:
-        
         URL = "https://www.reddit.com/r/funny/new/.rss"
         rss_d = feedparser.parse(URL)
         Content = (rss_d.entries[0]['title'] + "\n\n" + rss_d.entries[0]['link'])
         await client.send_message(message.chat.id, Content)
         await pablo.edit("This Chat Has No RSS So Sent Reddit RSS")
     else:
-        all = get_chat_rss(message.chat.id)
-        
+        all = await get_chat_rss(message.chat.id)
         for x in all:
             link = x.get("rss_link")
             rss_d = feedparser.parse(link)
-            
             content = ""
             content += f"**{rss_d.entries[0].title}**"
             content += f"\n\nLink : {rss_d.entries[0].link}"
@@ -107,12 +104,12 @@ async def testrss(client, message):
 )
 async def listrss(client, message):
     pablo = await edit_or_reply(message, "`Processing....`")
-    damn = basic_check(message.chat.id)
+    damn = await basic_check(message.chat.id)
     if not damn:
         await pablo.edit("This Chat Has No RSS!")
         return
     links = ""
-    all = get_chat_rss(message.chat.id)
+    all = await get_chat_rss(message.chat.id)
     for x in all:
         l = x.get("rss_link")
         links += f"{l}\n"
@@ -134,13 +131,13 @@ async def delrss(client, message):
     pablo = await edit_or_reply(message, "`Processing....`")
     lenk = get_text(message)
     if not lenk:
-        await pablo.edit("Invalid Command Syntax, Please Check Help Menu To Know More!")
+        await pablo.edit("`Please Give Me A Valid Input. You Can Check Help Menu To Know More!`")
         return
-    lol = is_get_chat_rss(message.chat.id, lenk)
+    lol = await is_get_chat_rss(message.chat.id, lenk)
     if not lol:
         await pablo.edit("This Link Was Never Added")
         return
-    del_rss(message.chat.id, lenk)
+    await del_rss(message.chat.id, lenk)
     await pablo.edit(f"Successfully Removed `{lenk}` From Chat RSS")
 
 @friday_on_cmd(
@@ -153,16 +150,16 @@ async def delrss(client, message):
 )
 async def delrss(client, message):
     pablo = await edit_or_reply(message, "`Processing....`")
-    if not basic_check(message.chat.id):
+    if not await basic_check(message.chat.id):
         await pablo.edit("This Chat Has No RSS To Delete")
         return
-    delete_all()
+    await delete_all()
     await pablo.edit("Successfully Deleted All RSS From The Chat")
 
 async def check_rss():
-    if not overall_check():
+    if not await overall_check():
         return
-    all = get_all()
+    all = await get_all()
     for one in all:
         link = one.get("rss_link")
         old = one.get("latest_rss")
@@ -176,14 +173,11 @@ async def check_rss():
                 content += f"\n{rss_d.entries[0].description}"
              except:
                 pass
-             update_rss(message, link, rss_d.entries[0].link)
+             await update_rss(message, link, rss_d.entries[0].link)
              await Friday.send_message(message, content)
              
 
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(check_rss, 'interval', minutes=3)
+scheduler.add_job(check_rss, 'interval', minutes=10)
 scheduler.start()
-
-
-

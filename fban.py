@@ -8,7 +8,7 @@
 
 import asyncio
 import os
-
+import logging
 from main_startup.config_var import Config
 from main_startup.core.decorators import friday_on_cmd
 from main_startup.helper_func.basic_helpers import edit_or_reply, get_text
@@ -43,18 +43,18 @@ async def free_fbans(client, message):
             await uj.edit("`Either My Logic Broke Or You Are Not Admin in Any Fed!`")
             return
         for ujwal in fed_l:
-            if is_fed_in_db(ujwal):
-                e += 1
+            if not await is_fed_in_db(ujwal):
+                await add_fed(ujwal)
             else:
-                add_fed(ujwal)
+                e += 1
         await uj.edit(
             f"`Added {len(fed_l) - e} Feds To Database! Failed To Add {e} Feds!`"
         )
         return
-    if is_fed_in_db(f_id):
+    if await is_fed_in_db(f_id):
         await uj.edit("`Fed Already Exists In DB!`")
         return
-    add_fed(f_id)
+    await add_fed(f_id)
     await uj.edit(f"`Added {f_id} To dB!`")
 
 
@@ -72,13 +72,13 @@ async def paid_fbans(client, message):
         await uj.edit("`Give Fed ID :/`")
         return
     if f_id == "all":
-        rm_all_fed()
+        await rm_all_fed()
         await uj.edit("`Removed All Fed From DB!`")
         return
-    if not is_fed_in_db(f_id):
+    if not await is_fed_in_db(f_id):
         await uj.edit("`Fed Doesn't Exists In DB!`")
         return
-    rmfed(f_id)
+    await rmfed(f_id)
     await uj.edit(f"`Removed {f_id} From dB!`")
 
 
@@ -100,10 +100,11 @@ async def fban_s(client, message):
     if not Config.FBAN_GROUP:
         await uj.edit("`Please Setup Fban Group!`")
         return
-    fed_s = get_all_feds()
-    if len(fed_s) > 1:
+    fed_s = await get_all_feds()
+    if len(fed_s) == 0:
         await uj.edit("`You Need Atleast One Fed In Db To Use This Plugin!`")
         return
+    await uj.edit(f"`Fbanning In {len(fed_s)} Feds!`")
     try:
         await client.send_message(Config.FBAN_GROUP, "/start")
     except BaseException:
@@ -112,11 +113,12 @@ async def fban_s(client, message):
     for i in fed_s:
         await asyncio.sleep(2)
         try:
-            await client.send_message(Config.FBAN_GROUP, f"/joinfed {i}")
+            await client.send_message(Config.FBAN_GROUP, f"/joinfed {i['fed_s']}")
             await client.send_message(Config.FBAN_GROUP, f"/fban {ur}")
         except FloodWait as e:
             await asyncio.sleep(e.x)
-        except BaseException:
+        except BaseException as eb:
+            logging.error(eb)
             failed_n += 1
     good_f_msg = f"**FBANNED** \n**Affected Feds :** `{len(fed_s) - failed_n}` \n**Failed :** `{failed_n}` \n**Total Fed :** `{len(fed_s)}`"
     await uj.edit(good_f_msg)
@@ -154,7 +156,7 @@ async def fetch_all_fed(client, message):
                     Y = X[44:].splitlines()
                     for lol in Y:
                         fed_list.append(lol[2:38])
-        if sed.media:
+        elif sed.media:
             fed_file = await sed.download()
             file = open(fed_file, "r")
             lines = file.readlines()
